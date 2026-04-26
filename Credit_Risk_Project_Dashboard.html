@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- CHARACTER SET & VIEWPORT -->
+  <meta charset="UTF-8">
+  <!-- Ensures correct rendering and touch zooming on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreditIQ — Risk Intelligence Platform</title>
+
+  <!--  CHART.JS CDN  -->  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <style>
+
+  /* GOOGLE FONTS  */
+
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap');
+
+  /* CSS CUSTOM PROPERTIES  */
+  :root {
+    --bg-base:     #09090f; /* Deepest background — page background              */
+    --bg-surface:  #111119; /* Card / sidebar background                          */
+    --bg-elevated: #18181f; /* Input fields, table cells, inner containers        */
+    --bg-hover:    #1e1e28; /* Hover state for interactive list items             */
+    --border:      rgba(255,255,255,0.06);  /* Subtle hairline border             */
+    --border-hi:   rgba(255,255,255,0.15);  /* Highlighted border on hover        */
+    --gold:        #f0b429; /* Primary accent — KPI values, active nav            */
+    --gold-dim:    rgba(240,180,41,0.12);   /* Tinted gold background             */
+    --teal:        #00d9c0; /* Secondary accent — teal chart colour               */
+    --teal-dim:    rgba(0,217,192,0.10);
+    --red:         #ff4d6d; /* Danger — high-risk badges and KPI text             */
+    --red-dim:     rgba(255,77,109,0.12);
+    --green:       #00e5a0; /* Success — low-risk badges, positive trend arrows   */
+    --green-dim:   rgba(0,229,160,0.10);
+    --amber:       #ffb347; /* Warning — medium-risk badges                       */
+    --amber-dim:   rgba(255,179,71,0.10);
+    --txt:         #f0f0f8; /* Primary text — headings, active items              */
+    --txt2:        #8888aa; /* Secondary text — body, table cells                 */
+    --txt3:        #4a4a66; /* Tertiary text — labels, placeholders               */
+    --ff-d:        'Syne', sans-serif;    /* Display / UI font                   */
+    --ff-m:        'DM Mono', monospace; /* Data / code font                     */
+    --r-sm: 6px;  /* Small radius — buttons, inputs, badges                      */
+    --r-md: 12px; /* Medium radius — inner panels                                */
+    --r-lg: 18px; /* Large radius — cards                                        */
+  }
+
+  /* RESET  */ 
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  /* BODY & BACKGROUND AMBIENCE  */ 
+  body {
+    background: var(--bg-base);
+    color: var(--txt);
+    font-family: var(--ff-d);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(240,180,41,.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 70% at 90% 80%, rgba(0,217,192,.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+ /* NAVIGATION BAR */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100; /* Sits above all page content including sidebar */
+    background: rgba(9,9,15,.88); /* Semi-transparent base colour */
+    backdrop-filter: blur(20px);  /* Frosted glass effect          */
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+  }
+
+  /* Brand / Logo area */
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -.3px;
+  }
+  .nav-logo {
+    /* The credit card emoji icon inside a gold rounded square */
+    width: 28px; height: 28px;
+    background: var(--gold);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .nav-brand span { color: var(--gold); } /* "IQ" in CreditIQ is gold */
+
+  /* Nav button row (Overview / Models / Predictor / Queue / Pipeline) */
+  .nav-links { display: flex; gap: 2px; }
+  .nav-btn {
+    padding: 5px 13px;
+    border-radius: var(--r-sm);
+    font-size: .8rem;
+    font-weight: 500;
+    font-family: var(--ff-m);
+    color: var(--txt2);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: all .2s;
+  }
+  .nav-btn:hover { color: var(--txt); background: var(--bg-elevated); }
+  .nav-btn.on   { color: var(--gold); background: var(--gold-dim); } /* Active tab */
+
+  /* Live status pill (top-right corner) */
+  .nav-status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--ff-m);
+    font-size: .72rem;
+    color: var(--txt3);
+  }
+  /* Animated green pulse dot indicating live model status */
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  
+  .shell {
+    display: grid;
+    grid-template-columns: 210px 1fr; /* Sidebar | Content */
+    min-height: calc(100vh - 58px);   /* Fill viewport below nav */
+    position: relative;
+    z-index: 1;
+  }
+
+  /* SIDEBAR  */
+  aside {
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+    position: sticky;             /* Sticks within the scroll container */
+    top: 58px;                    /* Aligns flush below the nav bar     */
+    height: calc(100vh - 58px);
+    overflow-y: auto;             /* Scrollable if content overflows    */
+  }
+
+  /* Section label ("NAVIGATION", "RISK TIERS", "DATASET") */
+  .s-label {
+    font-family: var(--ff-m);
+    font-size: .63rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    color: var(--txt3);
+    text-transform: uppercase;
+    padding: 0 7px;
+    margin-bottom: 7px;
+  }
+
+  /* Individual sidebar navigation item */
+  .s-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 9px;
+    border-radius: var(--r-sm);
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--txt2);
+    cursor: pointer;
+    transition: all .15s;
+    border: 1px solid transparent;
+    user-select: none;
+    margin-bottom: 2px;
+  }
+  .s-item:hover { background: var(--bg-hover); color: var(--txt); }
+  .s-item.on    { background: var(--gold-dim); border-color: rgba(240,180,41,.2); color: var(--gold); }
+
+  .s-ico  { font-size: .9em; width: 17px; text-align: center; }
+
+  /* Sidebar count badges (e.g., "24" on Application Queue) */
+  .s-badge {
+    margin-left: auto; /* Push to the right edge */
+    font-family: var(--ff-m);
+    font-size: .66rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1px 7px;
+    color: var(--txt3);
+  }
+  .s-badge.g { background: var(--green-dim); border-color: rgba(0,229,160,.2); color: var(--green); }
+  .s-badge.r { background: var(--red-dim);   border-color: rgba(255,77,109,.2); color: var(--red); }
+
+  /* Spacing between sidebar sections */
+  .s-sec { margin-bottom: 22px; }
+ 
+  main { padding: 26px 28px; overflow-y: auto; }
+
+  /* Page panels — hidden by default, shown with .on class */
+  .page    { display: none; }
+  .page.on { display: block; animation: fi .22s ease; }
+
+  /* Fade-up entrance animation applied when a page becomes active */
+  @keyframes fi {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* Page headings */
+  .pg-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    margin-bottom: 3px;
+  }
+  .pg-sub {
+    font-family: var(--ff-m);
+    font-size: .76rem;
+    color: var(--txt3);
+    margin-bottom: 24px;
+  }
+
+  /* Section divider labels (e.g., "Performance Table") */
+  .sec-title {
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--txt3);
+    margin-bottom: 12px;
+    margin-top: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Decorative horizontal rule that extends to the right of the label */
+  .sec-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 20px 22px;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: var(--border-hi); }
+
+  /* Small uppercase label inside a card (chart title) */
+  .c-title {
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--txt3);
+    margin-bottom: 13px;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s, border-color .2s;
+  }
+  .kpi:hover { transform: translateY(-2px); border-color: var(--border-hi); }
+
+  /* Top colour bar — applied via a pseudo-element */
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .kpi.g::before { background: linear-gradient(90deg, var(--gold), transparent); }
+  .kpi.t::before { background: linear-gradient(90deg, var(--teal), transparent); }
+  .kpi.r::before { background: linear-gradient(90deg, var(--red),  transparent); }
+  .kpi.e::before { background: linear-gradient(90deg, var(--green),transparent); }
+
+  .kpi-lbl { font-family:var(--ff-m); font-size:.66rem; letter-spacing:1px; text-transform:uppercase; color:var(--txt3); margin-bottom:9px; }
+  .kpi-val { font-size:1.9rem; font-weight:800; letter-spacing:-1px; line-height:1; margin-bottom:7px; }
+  .kpi.g .kpi-val { color: var(--gold); }
+  .kpi.t .kpi-val { color: var(--teal); }
+  .kpi.r .kpi-val { color: var(--red);  }
+  .kpi.e .kpi-val { color: var(--green);}
+  .kpi-sub { font-family:var(--ff-m); font-size:.7rem; color:var(--txt3); }
+
+  /* Trend colour helpers used inside .kpi-sub */
+  .up { color: var(--green); }
+  .dn { color: var(--red);   }
+
+  .g2  { display:grid; grid-template-columns:1fr 1fr;   gap:18px; margin-bottom:18px; }
+  .g3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-bottom:18px; }
+  .gw  { display:grid; grid-template-columns:2fr 1fr;   gap:18px; margin-bottom:18px; } /* Wide-left */
+
+  /* Fixed-height wrappers for <canvas> elements (Chart.js needs a height) */
+  .cw  { position:relative; height:230px; } /* Wide chart (bar / histogram)  */
+  .ct  { position:relative; height:290px; } /* Tall chart (line / doughnut)  */
+  .cs  { position:relative; height:175px; } /* Small chart (donut in panel)  */
+  .cht { position:relative; height:280px; } /* Horizontal bar (importance)   */
+
+  .mtable { width:100%; border-collapse:collapse; }
+  .mtable th {
+    font-family:var(--ff-m); font-size:.65rem; letter-spacing:1px;
+    text-transform:uppercase; color:var(--txt3);
+    padding:9px 13px; text-align:left;
+    border-bottom:1px solid var(--border);
+  }
+  .mtable td {
+    padding:11px 13px;
+    font-family:var(--ff-m); font-size:.8rem; color:var(--txt2);
+    border-bottom:1px solid rgba(255,255,255,.03);
+    transition:background .15s;
+  }
+  .mtable tr:hover td { background: var(--bg-hover); }
+  .mtable tr.champ td { color: var(--txt); } /* Champion row is brighter */
+
+  /* "Champion" label badge next to the winning model name */
+  .champ-tag {
+    background:var(--gold-dim); border:1px solid rgba(240,180,41,.3); color:var(--gold);
+    font-size:.63rem; border-radius:20px; padding:2px 7px; margin-left:7px;
+  }
+
+  /* Mini bar container for metric values in the table */
+  .mbar-w  { display:flex; align-items:center; gap:9px; }
+  .mbar    { height:5px; border-radius:3px; background:var(--bg-elevated); flex:1; overflow:hidden; }
+  /* The filled portion — width is set dynamically in JavaScript */
+  .mbar-f  { height:100%; border-radius:3px; transition:width 1s cubic-bezier(.4,0,.2,1); }
+
+  .pred-grid { display:grid; grid-template-columns:1.1fr 1fr; gap:22px; }
+
+  /* 2-column field grid inside the form card */
+  .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .fg    { display:flex; flex-direction:column; gap:5px; }
+  .fg.s2 { grid-column:span 2; } /* Full-width field (e.g., range slider) */
+
+  /* Form field labels */
+  .flbl {
+    font-family:var(--ff-m); font-size:.65rem;
+    letter-spacing:.8px; text-transform:uppercase; color:var(--txt3);
+  }
+
+  /* Text inputs and select dropdowns in the predictor form */
+  .finput, .fsel {
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:var(--r-sm);
+    color:var(--txt);
+    font-family:var(--ff-m); font-size:.8rem;
+    padding:8px 11px;
+    outline:none; width:100%;
+    transition:border-color .2s;
+  }
+  .finput:focus, .fsel:focus { border-color: var(--gold); }
+  .fsel option { background: var(--bg-elevated); }
+
+  /* Range / slider — accent colour follows the gold theme */
+  .frange { width:100%; accent-color:var(--gold); }
+
+  /* "Score Applicant" submit button */
+  .pbtn {
+    width:100%; margin-top:5px;
+    background:var(--gold); color:#0a0800;
+    border:none; border-radius:var(--r-sm);
+    font-family:var(--ff-d); font-size:.88rem; font-weight:700;
+    padding:11px; cursor:pointer;
+    transition:opacity .2s, transform .1s;
+  }
+  .pbtn:hover  { opacity:.9; transform:translateY(-1px); }
+  .pbtn:active { transform:translateY(0); }
+
+  /* Right panel stacks vertically */
+  .rpanel { display:flex; flex-direction:column; gap:14px; }
+  
+  .gauge-wrap {
+    background:var(--bg-elevated); border:1px solid var(--border);
+    border-radius:var(--r-md); padding:22px; text-align:center;
+  }
+  .gauge-trk {
+    width:130px; height:65px;
+    margin:0 auto 13px;
+    position:relative; overflow:hidden;
+  }
+  /* Static grey track — always visible behind the needle */
+  .gauge-trk::before {
+    content:'';
+    position:absolute; bottom:0; left:0;
+    width:130px; height:130px;
+    border-radius:50%;
+    border:12px solid var(--bg-hover);
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    transform:rotate(45deg);
+  }
+  /* Coloured needle arc — rotation driven by JavaScript */
+  .gauge-f {
+    position:absolute; bottom:0; left:0;
+    width:130px; height:130px;
+    border-radius:50%;
+    border:12px solid transparent;
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    transform:rotate(45deg);
+    transition:all .8s cubic-bezier(.4,0,.2,1);
+  }
+  .g-val  { font-size:2.3rem; font-weight:800; letter-spacing:-1px; transition:color .4s; }
+  .g-lbl  { font-family:var(--ff-m); font-size:.7rem; color:var(--txt3); }
+
+  /* Verdict banner shown below the gauge */
+  .verdict {
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    padding:11px 16px;
+    border-radius:var(--r-sm);
+    font-weight:700; font-size:.87rem;
+    border:1px solid transparent;
+    transition:all .4s; /* Colour cross-fades when risk level changes */
+  }
+
+  /*  RISK FACTOR LIST  */
+  .flist { display:flex; flex-direction:column; gap:7px; }
+  .fitem {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:9px 13px;
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-sm);
+  }
+  .fnm  { font-size:.78rem; font-weight:500; color:var(--txt2); }
+  .fimp { font-family:var(--ff-m); font-size:.7rem; padding:2px 7px; border-radius:20px; }
+  /* Risk level colouring for each factor badge */
+  .fh { background:var(--red-dim);   color:var(--red);   border:1px solid rgba(255,77,109,.2);  }
+  .fm { background:var(--amber-dim); color:var(--amber); border:1px solid rgba(255,179,71,.2);  }
+  .fl { background:var(--green-dim); color:var(--green); border:1px solid rgba(0,229,160,.2);   }
+
+  .qtable { width:100%; border-collapse:collapse; }
+  .qtable th {
+    font-family:var(--ff-m); font-size:.64rem; letter-spacing:1px; text-transform:uppercase;
+    color:var(--txt3); padding:9px 14px; text-align:left;
+    border-bottom:1px solid var(--border);
+    background:var(--bg-surface);
+    position:sticky; top:0; /* Header stays visible when table scrolls */
+  }
+  .qtable td {
+    padding:10px 14px;
+    font-family:var(--ff-m); font-size:.78rem; color:var(--txt2);
+    border-bottom:1px solid rgba(255,255,255,.03);
+  }
+  .qtable tr:hover td { background: var(--bg-hover); }
+
+  /* Risk tier pill badges in the queue table */
+  .rbadge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 9px; border-radius:20px; font-size:.7rem; font-weight:600;
+  }
+  .rlo { background:var(--green-dim); color:var(--green); border:1px solid rgba(0,229,160,.2);  }
+  .rme { background:var(--amber-dim); color:var(--amber); border:1px solid rgba(255,179,71,.2);  }
+  .rhi { background:var(--red-dim);   color:var(--red);   border:1px solid rgba(255,77,109,.2);  }
+
+  /* Filter bar above the queue table */
+  .fbar { display:flex; gap:9px; margin-bottom:14px; align-items:center; }
+  .fi-inp {
+    background:var(--bg-elevated); border:1px solid var(--border);
+    border-radius:var(--r-sm); color:var(--txt);
+    font-family:var(--ff-m); font-size:.78rem; padding:7px 13px;
+    outline:none; flex:1; transition:border-color .2s;
+  }
+  .fi-inp:focus { border-color: var(--gold); }
+  /* Filter buttons (All / Low / Medium / High) */
+  .fbtn {
+    padding:7px 14px; border-radius:var(--r-sm);
+    font-family:var(--ff-m); font-size:.75rem; font-weight:500;
+    border:1px solid var(--border); background:var(--bg-elevated); color:var(--txt2);
+    cursor:pointer; transition:all .15s;
+  }
+  .fbtn:hover, .fbtn.on { border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
+
+  .psteps { display:flex; flex-direction:column; gap:11px; }
+  .pstep  {
+    display:flex; align-items:flex-start; gap:15px;
+    padding:15px 16px;
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-md);
+    transition:border-color .2s;
+  }
+  .pstep:hover    { border-color: var(--border-hi); }
+  .pstep.done     { border-left: 3px solid var(--green); }
+  .pstep.pend     { border-left: 3px solid var(--txt3);  }
+
+  /* Step icon circle */
+  .pico { width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:.95rem; flex-shrink:0; }
+  .done .pico { background: var(--green-dim); }
+  .pend .pico { background: var(--bg-hover);  }
+
+  .pbod  { flex:1; }
+  .pnm   { font-weight:600; font-size:.88rem; margin-bottom:2px; }
+  .done .pnm  { color: var(--txt);  }
+  .pend .pnm  { color: var(--txt3); }
+  .pdesc { font-family:var(--ff-m); font-size:.7rem; color:var(--txt3); }
+
+  /* Execution time shown on the right */
+  .pmeta { font-family:var(--ff-m); font-size:.66rem; flex-shrink:0; text-align:right; }
+  .done .pmeta { color: var(--green); }
+  .pend .pmeta { color: var(--txt3);  }
+
+  ::-webkit-scrollbar        { width:4px; height:4px; }
+  ::-webkit-scrollbar-track  { background:transparent; }
+  ::-webkit-scrollbar-thumb  { background:var(--border); border-radius:3px; }
+
+  @media(max-width:1100px) {
+    .kpi-grid   { grid-template-columns: repeat(2,1fr); }
+    .g3         { grid-template-columns: 1fr 1fr; }
+    .pred-grid  { grid-template-columns: 1fr; }
+    .gw         { grid-template-columns: 1fr; }
+  }
+  @media(max-width:800px) {
+    .shell { grid-template-columns: 1fr; }
+    aside  { display:none; } /* Sidebar hidden on mobile */
+    .g2, .g3 { grid-template-columns: 1fr; }
+  }
+
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">💳</div>
+    Credit<span>IQ</span>
+  </div>
+
+  <!-- Page switcher — the active button gets class "on" via JavaScript -->
+  <div class="nav-links">
+    <button class="nav-btn on" onclick="nav('overview',this)">Overview</button>
+    <button class="nav-btn"   onclick="nav('models',this)">Models</button>
+    <button class="nav-btn"   onclick="nav('pred',this)">Predictor</button>
+    <button class="nav-btn"   onclick="nav('queue',this)">Queue</button>
+    <button class="nav-btn"   onclick="nav('pipe',this)">Pipeline</button>
+  </div>
+
+  <!-- Pulsing dot + champion model name -->
+  <div class="nav-status">
+    <div class="dot"></div>
+    XGBoost v2.4 · Live
+  </div>
+</nav>
+
+<!-- SHELL — SIDEBAR + MAIN -->
+<div class="shell">
+
+  <aside>
+
+    <!-- Navigation links -->
+    <div class="s-sec">
+      <div class="s-label">Navigation</div>
+      <div class="s-item on" onclick="nav('overview'); sset(this)"><span class="s-ico">◈</span>Overview</div>
+      <div class="s-item"    onclick="nav('models');  sset(this)"><span class="s-ico">⬡</span>Model Comparison</div>
+      <div class="s-item"    onclick="nav('pred');    sset(this)"><span class="s-ico">◎</span>Risk Predictor</div>
+      <!-- Badge shows number of applications in queue -->
+      <div class="s-item"    onclick="nav('queue');   sset(this)"><span class="s-ico">≡</span>App. Queue<span class="s-badge">24</span></div>
+      <div class="s-item"    onclick="nav('pipe');    sset(this)"><span class="s-ico">⊹</span>Pipeline Status</div>
+    </div>
+
+    <!-- Portfolio risk tier breakdown -->
+    <div class="s-sec">
+      <div class="s-label">Risk Tiers</div>
+      <div class="s-item"><span class="s-ico" style="color:var(--green)">●</span>Low Risk   <span class="s-badge g">68%</span></div>
+      <div class="s-item"><span class="s-ico" style="color:var(--amber)">●</span>Medium Risk<span class="s-badge">21%</span></div>
+      <div class="s-item"><span class="s-ico" style="color:var(--red)">●</span>High Risk  <span class="s-badge r">11%</span></div>
+    </div>
+
+    <!-- Dataset metadata panel -->
+    <div class="s-sec">
+      <div class="s-label">Dataset</div>
+      <div style="padding:9px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-sm)">
+        <div style="font-family:var(--ff-m);font-size:.68rem;color:var(--txt3);margin-bottom:7px">Kaggle · Credit Approval</div>
+        <div style="font-family:var(--ff-m);font-size:.73rem;color:var(--txt2);display:flex;justify-content:space-between;margin-bottom:3px">
+          <span>Applicants</span><span style="color:var(--gold)">22,272</span>
+        </div>
+        <div style="font-family:var(--ff-m);font-size:.73rem;color:var(--txt2);display:flex;justify-content:space-between;margin-bottom:3px">
+          <span>Features</span><span style="color:var(--gold)">25</span>
+        </div>
+        <div style="font-family:var(--ff-m);font-size:.73rem;color:var(--txt2);display:flex;justify-content:space-between">        
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+
+  <main>
+
+    <div class="page on" id="pg-overview">
+      <div class="pg-title">Risk Intelligence Overview</div>
+      <div class="pg-sub">Production model performance · XGBoost Champion · Kaggle Credit Dataset</div>
+
+      <!-- Four KPI tiles -->
+      <div class="kpi-grid">
+        <div class="kpi g">
+          <div class="kpi-lbl">ROC-AUC Score</div>
+          <div class="kpi-val">0.7396</div>
+          <div class="kpi-sub"><span class="up">↑ +0.0377</span> vs baseline</div>
+        </div>
+        <div class="kpi t">
+          <div class="kpi-lbl">F1-Score</div>
+          <div class="kpi-val">0.61</div>
+          <div class="kpi-sub"><span class="up">↑ +0.7</span> vs SVM</div>
+        </div>
+        <div class="kpi r">
+          <div class="kpi-lbl">Portfolio Default Rate</div>
+          <div class="kpi-val">12.3%</div>
+          <div class="kpi-sub">Rolling 12-month avg</div>
+        </div>
+        <div class="kpi e">
+          <div class="kpi-lbl">Applicants Scored</div>
+          <div class="kpi-val">22.4k</div>
+          <div class="kpi-sub"><span class="up">↑ 1,240</span> this month</div>
+        </div>
+      </div>
+
+      <!-- Wide-left layout: trend line chart | risk-tier donut -->
+      <div class="gw">
+        <div class="card">
+          <div class="c-title">Monthly Default Rate Trend</div>
+          <!-- Canvas height is controlled by the .ct CSS class -->
+          <div class="ct"><canvas id="trendC"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="c-title">Risk Tier Distribution</div>
+          <div class="ct"><canvas id="donutC"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Three small bar charts for demographic breakdowns -->
+      <div class="g3">
+        <div class="card">
+          <div class="c-title">Default Rate by Age Group</div>
+          <div class="cw"><canvas id="ageC"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="c-title">Default Rate by Income Type</div>
+          <div class="cw"><canvas id="incC"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="c-title">Default Rate by Education</div>
+          <div class="cw"><canvas id="eduC"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Full-width horizontal bar chart for top-10 feature importance -->
+      <div class="card">
+        <div class="c-title">Top 10 Predictive Features — SVM (Tuned)</div>
+        <div class="cht"><canvas id="impC"></canvas></div>
+      </div>
+    </div><!-- /pg-overview -->
+
+    <div class="page" id="pg-models">
+      <div class="pg-title">Model Comparison</div>
+      <div class="pg-sub">SVM (RBF kernel) vs XGBoost · Baseline vs Tuned · 5-fold StratifiedCV</div>
+
+      <!-- Best-in-class KPI tiles -->
+      <div class="kpi-grid">
+        <div class="kpi g"><div class="kpi-lbl">Best ROC-AUC</div>  <div class="kpi-val">0.7396</div><div class="kpi-sub">XGBoost Tuned</div></div>
+        <div class="kpi t"><div class="kpi-lbl">Best F1-Score</div>  <div class="kpi-val">0.61</div><div class="kpi-sub">XGBoost Tuned</div></div>
+        <div class="kpi e"><div class="kpi-lbl">Best ROC-AUC</div> <div class="kpi-val">0.69</div><div class="kpi-sub">SVM Tuned</div></div>
+        <div class="kpi r"><div class="kpi-lbl">Best F1-Score</div>    <div class="kpi-val">0.54</div><div class="kpi-sub">SVM Tuned</div></div>
+      </div>
+
+      <div class="sec-title">Performance Table</div>
+      <!-- Table body is populated dynamically by initModels() in JavaScript -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="mtable">
+          <thead>
+            <tr>
+              <th>Model</th><th>Accuracy</th><th>Precision</th>
+              <th>Recall</th><th>F1-Score</th><th>ROC-AUC</th>
+            </tr>
+          </thead>
+          <tbody id="mtbody"></tbody>
+        </table>
+      </div>
+
+      <div class="sec-title">Visual Comparison</div>
+      <div class="g2">
+        <div class="card"><div class="c-title">ROC-AUC Curves</div>          <div class="ct"><canvas id="rocC"></canvas></div></div>
+        <div class="card"><div class="c-title">Metric Radar — Tuned Models</div><div class="ct"><canvas id="radC"></canvas></div></div>
+      </div>
+      <!-- Full-width grouped bar chart — all four models side by side -->
+      <div class="card">
+        <div class="c-title">Side-by-Side Metric Comparison — All Models</div>
+        <div class="ct"><canvas id="gbC"></canvas></div>
+      </div>
+    </div><!-- /pg-models -->
+
+    <div class="page" id="pg-pred">
+      <div class="pg-title">Real-Time Risk Predictor</div>
+      <div class="pg-sub">Score a new applicant through the production XGBoost feature pipeline</div>
+
+      <div class="pred-grid">
+
+        <!-- LEFT: Input form -->
+        <div class="card">
+          <div class="c-title">Applicant Profile</div>
+          <div class="fgrid">
+
+            <!-- Numeric inputs -->
+            <div class="fg">
+              <div class="flbl">Age (years)</div>
+              <input type="number" class="finput" id="fa" value="34" min="18" max="80">
+            </div>
+            <div class="fg">
+              <div class="flbl">Annual Income ($)</div>
+              <input type="number" class="finput" id="fi" value="180000" min="0">
+            </div>
+            <div class="fg">
+              <div class="flbl">Employment (years)</div>
+              <input type="number" class="finput" id="fe" value="4.5" step="0.1" min="0">
+            </div>
+            <div class="fg">
+              <div class="flbl">Family Size</div>
+              <input type="number" class="finput" id="ff" value="3" min="1" max="20">
+            </div>
+            <div class="fg">
+              <div class="flbl">Children Count</div>
+              <input type="number" class="finput" id="fc" value="1" min="0" max="10">
+            </div>
+
+            <!-- Dropdown selects -->
+            <div class="fg">
+              <div class="flbl">Gender</div>
+              <select class="fsel" id="fg"><option>Female</option><option>Male</option></select>
+            </div>
+            <div class="fg">
+              <div class="flbl">Owns Car</div>
+              <select class="fsel" id="fcar"><option>Yes</option><option>No</option></select>
+            </div>
+            <div class="fg">
+              <div class="flbl">Owns Property</div>
+              <select class="fsel" id="fprop"><option>Yes</option><option>No</option></select>
+            </div>
+            <div class="fg">
+              <div class="flbl">Income Category</div>
+              <select class="fsel" id="fic">
+                <option>Working</option>
+                <option>Commercial associate</option>
+                <option>Pensioner</option>
+                <option>State servant</option>
+              </select>
+            </div>
+            <div class="fg">
+              <div class="flbl">Education Level</div>
+              <select class="fsel" id="fed">
+                <option>Higher education</option>
+                <option>Secondary / secondary special</option>
+                <option>Incomplete higher</option>
+                <option>Lower secondary</option>
+              </select>
+            </div>
+
+            <!-- Full-width range slider for account age -->
+            <div class="fg s2">
+              <div class="flbl">Account Age (months): <span id="famv">24</span></div>
+              <!-- oninput updates the live display value inline -->
+              <input type="range" class="frange" id="fam" min="1" max="60" value="24"
+                     oninput="document.getElementById('famv').textContent=this.value">
+            </div>
+
+            <div class="fg">
+              <div class="flbl">Avg Monthly Risk</div>
+              <input type="number" class="finput" id="frisk" value="0.05" step="0.01" min="0" max="1">
+            </div>
+            <div class="fg">
+              <div class="flbl">Months Tracked</div>
+              <input type="number" class="finput" id="fmt" value="24" min="1">
+            </div>
+
+          </div><!-- /fgrid -->
+
+          <!-- Submit triggers the predict() function -->
+          <button class="pbtn" onclick="predict()">⚡ Score Applicant</button>
+        </div><!-- /left card -->
+
+        <!-- RIGHT: Results panel (stacked vertically) -->
+        <div class="rpanel">
+
+          <!-- Semicircle gauge showing default probability percentage -->
+          <div class="gauge-wrap">
+            <div class="gauge-trk">
+              <div class="gauge-f" id="gf"></div> <!-- Rotating needle -->
+            </div>
+            <div class="g-val" id="gv">—</div>     <!-- Percentage text -->
+            <div class="g-lbl">Default Probability</div>
+          </div>
+
+          <!-- Verdict banner — colour changes based on risk level -->
+          <div class="verdict" id="verd">Run the predictor to see results</div>
+
+          <!-- Factor breakdown list — rendered by predict() -->
+          <div class="card" style="padding:15px">
+            <div class="c-title" style="margin-bottom:9px">Key Risk Factors</div>
+            <div class="flist" id="flist">
+              <div style="font-family:var(--ff-m);font-size:.74rem;color:var(--txt3);text-align:center;padding:14px">
+                Score an applicant to see factors
+              </div>
+            </div>
+          </div>
+
+          <!-- Donut chart: Default vs Safe probability split -->
+          <div class="card" style="padding:15px">
+            <div class="c-title" style="margin-bottom:11px">Probability Gauge</div>
+            <div class="cs"><canvas id="probC"></canvas></div>
+          </div>
+
+        </div><!-- /rpanel -->
+      </div><!-- /pred-grid -->
+    </div><!-- /pg-pred -->
+
+    <div class="page" id="pg-queue">
+      <div class="pg-title">Application Queue</div>
+      <div class="pg-sub">24 applications pending review · Sorted by default probability</div>
+
+      <!-- Filter / search bar -->
+      <div class="fbar">
+        <!-- Live search — filters rows on every keystroke -->
+        <input type="text" class="fi-inp" placeholder="Search by ID, occupation…"
+               oninput="qsearch(this.value)">
+        <!-- Risk-tier filter buttons -->
+        <button class="fbtn on" onclick="qfilter('all',this)">All</button>
+        <button class="fbtn"    onclick="qfilter('LOW',this)">🟢 Low</button>
+        <button class="fbtn"    onclick="qfilter('MEDIUM',this)">🟡 Medium</button>
+        <button class="fbtn"    onclick="qfilter('HIGH',this)">🔴 High</button>
+      </div>
+
+      <!-- Table — tbody is filled by renderQueue() in JavaScript -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="qtable">
+          <thead>
+            <tr>
+              <th>App ID</th><th>Age</th><th>Income</th><th>Employment</th>
+              <th>Occupation</th><th>Avg Risk</th><th>Default Prob</th><th>Risk Tier</th>
+            </tr>
+          </thead>
+          <tbody id="qbody"></tbody>
+        </table>
+      </div>
+    </div><!-- /pg-queue -->
+
+
+    <div class="page" id="pg-pipe">
+      <div class="pg-title">ML Pipeline Status</div>
+      <div class="pg-sub">11 stages · All complete · XGBoost champion model · Kaggle Credit Dataset</div>
+
+      <!-- Pipeline-level KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi e"><div class="kpi-lbl">Stages Complete</div> <div class="kpi-val">11/11</div><div class="kpi-sub">All systems nominal</div></div>
+        <div class="kpi g"><div class="kpi-lbl">Total Train Time</div><div class="kpi-val">4.3m</div><div class="kpi-sub">incl. search</div></div>
+        <div class="kpi t"><div class="kpi-lbl">CV Folds</div>        <div class="kpi-val">5</div>  <div class="kpi-sub">StratifiedKFold</div></div>
+        <div class="kpi r"><div class="kpi-lbl">Search Iterations</div><div class="kpi-val">20</div><div class="kpi-sub">RandomizedSearchCV</div></div>
+      </div>
+
+      <div class="sec-title">Execution Log</div>
+      <!-- Step cards are injected here by initPipe() -->
+      <div class="psteps" id="psteps"></div>
+    </div><!-- /pg-pipe -->
+
+  </main>
+</div><!-- /shell -->
+
+<script>
+
+const MODELS = [
+  { n:'SVM (Baseline)',    a:.92, p:.53, r:.72, f:.54, u:.7346 },
+  { n:'XGBoost (Baseline)',a:.96, p:.57, r:.78, f:.61, u:.7176 },
+  { n:'SVM (Tuned)',       a:.97, p:.59, r:.72, f:.63, u:.6984 },
+  { n:'XGBoost (Tuned)',   a:.98, p:.62, r:.77, f:.67, u:.7396, ch:true },
+];
+
+const QUEUE = [
+  { id:'APP-3812', age:28, inc:135000, emp:2.1,  occ:'IT staff',        risk:.03, prob:.07, t:'LOW'    },
+  { id:'APP-3813', age:45, inc:220000, emp:12.5, occ:'Managers',        risk:.02, prob:.04, t:'LOW'    },
+  { id:'APP-3814', age:32, inc:89000,  emp:1.2,  occ:'Sales staff',     risk:.18, prob:.41, t:'MEDIUM' },
+  { id:'APP-3815', age:52, inc:67000,  emp:0,    occ:'Unknown',         risk:.35, prob:.73, t:'HIGH'   },
+  { id:'APP-3816', age:24, inc:45000,  emp:0.5,  occ:'Laborers',        risk:.22, prob:.52, t:'MEDIUM' },
+  { id:'APP-3817', age:39, inc:310000, emp:8.0,  occ:'Accountants',     risk:.01, prob:.03, t:'LOW'    },
+  { id:'APP-3818', age:61, inc:72000,  emp:0,    occ:'Pensioner',       risk:.28, prob:.61, t:'HIGH'   },
+  { id:'APP-3819', age:36, inc:158000, emp:6.3,  occ:'Core staff',      risk:.05, prob:.11, t:'LOW'    },
+  { id:'APP-3820', age:29, inc:92000,  emp:3.1,  occ:'Cleaning staff',  risk:.14, prob:.33, t:'MEDIUM' },
+  { id:'APP-3821', age:47, inc:195000, emp:9.8,  occ:'Managers',        risk:.02, prob:.06, t:'LOW'    },
+  { id:'APP-3822', age:33, inc:78000,  emp:0.8,  occ:'Drivers',         risk:.21, prob:.48, t:'MEDIUM' },
+  { id:'APP-3823', age:55, inc:52000,  emp:0,    occ:'Unknown',         risk:.40, prob:.81, t:'HIGH'   },
+  { id:'APP-3824', age:42, inc:240000, emp:11.2, occ:'High skill tech',  risk:.01, prob:.02, t:'LOW'   },
+  { id:'APP-3825', age:27, inc:61000,  emp:1.5,  occ:'Laborers',        risk:.19, prob:.44, t:'MEDIUM' },
+];
+
+const PIPE = [
+  { n:'Setup & Dependencies',      d:'Consolidated imports · Logging · Global config',      t:'0.3s',    ok:1 },
+  { n:'Data Acquisition',          d:'Load CSVs · Build target · Inner merge',              t:'1.2s',    ok:1 },
+  { n:'Data Leakage Audit',        d:'Checks for data leakage',                             t:'1.2s',    ok:1 },
+  { n:'Target Re-Engineering — Performance Window',        d:'Handles leakage . Observation window . Performance window',              t:'1.2s',    ok:1 },
+  { n:'Data Cleaning (After solving the leakage problem)',             d:'Imputation · Winsorisation · Deduplication',          t:'0.8s',    ok:1 },
+  { n:'Feature Engineering',       d:'6 derived features · ColumnTransformer',              t:'0.5s',    ok:1 },  
+  { n:'Exploratory Data Analysis', d:'Interactive Plotly charts · Correlation matrix',      t:'2.1s',    ok:1 },
+  { n:'Modeling & Validation',         d:' 80/20 stratified · SVM (RBF) + XGBoost · Imbalance handled',             t:'38.4s',   ok:1 },
+  { n:'Hyperparameter Tuning',     d:'RandomizedSearchCV · 20 iter · 5-fold CV',            t:'3m 42s',  ok:1 },
+  { n:'Evaluation',  d:'Metrics · ROC curves · ',         t:'1.8s',    ok:1 },
+  { n:'Model Persistence',  d:'artifacts · best_model.pkl saved',         t:'1.8s',    ok:1 },
+];
+
+const TT = {
+  backgroundColor: '#18181f',
+  borderColor: 'rgba(255,255,255,.08)',
+  borderWidth: 1,
+  titleColor: '#f0f0f8',
+  bodyColor: '#8888aa',
+  titleFont: { family:"'DM Mono',monospace" },
+  bodyFont:  { family:"'DM Mono',monospace" },
+};
+const TA = { color:'#8888aa', font:{ family:"'DM Mono',monospace", size:10 } };
+const SC = {
+  x: { ticks:TA, grid:{ color:'rgba(255,255,255,.05)' } },
+  y: { ticks:TA, grid:{ color:'rgba(255,255,255,.05)' } },
+};
+const LEG = { labels:{ color:'#8888aa', font:{ family:"'DM Mono',monospace", size:10 }, boxWidth:10 } };
+const BASE_OPTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend:LEG, tooltip:TT },
+  scales: SC,
+};
+
+function nav(id, btn) {
+  // Hide every page panel
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  // Show the requested page
+  document.getElementById('pg-' + id).classList.add('on');
+  // Update top nav button highlight
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  // Lazy-init pages that build their charts on first open
+  if (id === 'models') initModels();
+  if (id === 'pipe')   initPipe();
+}
+
+function sset(el) {
+  // Remove active class from all sidebar items and apply to the clicked one
+  document.querySelectorAll('.s-item').forEach(i => i.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function initOverview() {
+
+  /* Monthly Default Rate Trend (line chart) */
+  new Chart(document.getElementById('trendC'), {
+    type: 'line',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [
+        {
+          label: 'Default Rate (%)',
+          data: [14.2,13.8,13.1,12.9,12.6,12.3,11.8,12.1,11.9,12.3,12.0,11.7],
+          borderColor: '#f0b429',
+          backgroundColor: 'rgba(240,180,41,.08)',
+          tension: .4,        // Bezier curve smoothing
+          fill: true,         // Area fill below the line
+          pointRadius: 4,
+          pointBackgroundColor: '#f0b429',
+          borderWidth: 2,
+        },
+        {
+          label: 'Target Threshold',
+          data: Array(12).fill(12), // Flat 12% target line
+          borderColor: 'rgba(255,77,109,.4)',
+          borderDash: [4,4],  // Dashed style
+          pointRadius: 0,
+          borderWidth: 1.5,
+          fill: false,
+        },
+      ]
+    },
+    options: { ...BASE_OPTS, plugins:{ ...BASE_OPTS.plugins, legend:{ ...LEG, position:'top' } } }
+  });
+
+  /* Risk Tier Distribution (doughnut chart)  */
+  new Chart(document.getElementById('donutC'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Low Risk','Medium Risk','High Risk'],
+      datasets: [{
+        data: [68, 21, 11], // Percentages
+        backgroundColor: ['rgba(0,229,160,.65)','rgba(255,179,71,.65)','rgba(255,77,109,.65)'],
+        borderColor: ['#00e5a0','#ffb347','#ff4d6d'],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%', // Controls the hole size
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#8888aa', font:{ family:"'DM Mono',monospace", size:11 }, boxWidth:12, padding:14 } },
+        tooltip: TT,
+      }
+    }
+  });
+
+  /* Default Rate by Age Group (bar chart)  */
+  new Chart(document.getElementById('ageC'), {
+    type: 'bar',
+    data: {
+      labels: ['<25','25-34','35-44','45-54','55+'],
+      datasets: [{
+        label: 'Default %',
+        data: [18.4, 14.2, 10.1, 8.7, 12.9],
+        // Colour-coded bars: red = high risk, green = low risk, amber = moderate
+        backgroundColor: [
+          'rgba(255,77,109,.7)',  
+          'rgba(255,179,71,.7)',  
+          'rgba(0,229,160,.7)',   
+          'rgba(0,229,160,.7)',   
+          'rgba(255,179,71,.7)',  
+        ],
+        borderRadius: 4,
+        borderSkipped: false, // Round all four corners of each bar
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: { ...SC, y:{ ...SC.y, max:25 } },
+      plugins: { ...BASE_OPTS.plugins, legend:{ display:false } }
+    }
+  });
+
+  /*  Default Rate by Income Type (bar chart)  */
+  new Chart(document.getElementById('incC'), {
+    type: 'bar',
+    data: {
+      labels: ['Working','Comm.Assoc','Pensioner','State Serv.'],
+      datasets: [{
+        label: 'Default %',
+        data: [13.2, 9.8, 17.4, 7.1],
+        backgroundColor: 'rgba(0,217,192,.55)', // Uniform teal
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: { ...SC, y:{ ...SC.y, max:25 } },
+      plugins: { ...BASE_OPTS.plugins, legend:{ display:false } }
+    }
+  });
+
+  /* Default Rate by Education Level (bar chart)  */
+  new Chart(document.getElementById('eduC'), {
+    type: 'bar',
+    data: {
+      labels: ['Higher','Secondary','Inc.Higher','Lower Sec.'],
+      datasets: [{
+        label: 'Default %',
+        data: [8.3, 14.7, 16.2, 22.1],
+        backgroundColor: 'rgba(240,180,41,.55)', // Uniform gold
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: { ...SC, y:{ ...SC.y, max:28 } },
+      plugins: { ...BASE_OPTS.plugins, legend:{ display:false } }
+    }
+  });
+
+  /* ── Feature Importance — horizontal bar chart ── */
+  new Chart(document.getElementById('impC'), {
+    type: 'bar',
+    data: {
+      
+      labels: [
+        'OBS_MAX_DPD','INCOME_CATEGORY','AGE_GROUP',
+        'OBS_MEAN_DPD','ANNUAL_INCOME','INCOME_LOG',
+        'OWNS_PROPERTY','HOUSING_TYPE','INCOME_GROUP','FAMILY_SIZE',
+        'Employment_Stability_Index'
+        ],
+
+      datasets: [{
+        label: 'Importance',
+        data: [.0093,.0080,.0033,.0026,.002,.002,.0013,.0013,.0013,.0013,.0013],
+        // Gradient from vivid gold (most important) to pale teal (least)
+        backgroundColor: [
+          'rgba(240,180,41,.9)','rgba(240,180,41,.75)',
+          'rgba(0,217,192,.7)','rgba(0,217,192,.55)',
+          'rgba(0,217,192,.45)','rgba(0,217,192,.35)',
+          'rgba(0,217,192,.28)','rgba(0,217,192,.22)',
+          'rgba(0,217,192,.16)','rgba(0,217,192,.12)',
+          'rgba(0,217,192,.16)','rgba(0,217,192,.12)',
+        ],
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      indexAxis: 'y', // Horizontal bar orientation
+      plugins: { ...BASE_OPTS.plugins, legend:{ display:false } }
+    }
+  });
+}
+
+let mInited = false;
+function initModels() {
+  if (mInited) return;
+  mInited = true;
+
+  /* Performance table  */
+  const tb  = document.getElementById('mtbody');
+  // Find the maximum value per metric (used to scale bar widths to 100%)
+  const mx  = {
+    a: Math.max(...MODELS.map(m => m.a)),
+    p: Math.max(...MODELS.map(m => m.p)),
+    r: Math.max(...MODELS.map(m => m.r)),
+    f: Math.max(...MODELS.map(m => m.f)),
+    u: Math.max(...MODELS.map(m => m.u)),
+  };
+  // A distinct colour per metric for the bar fill
+  const bc  = { a:'#79c0ff', p:'#00e5a0', r:'#f0b429', f:'#00d9c0', u:'#f0b429' };
+
+  MODELS.forEach(m => {
+    const tr   = document.createElement('tr');
+    if (m.ch) tr.className = 'champ'; // Highlight champion row
+    const keys = ['a','p','r','f','u'];
+    tr.innerHTML =
+      `<td>${m.n}${m.ch ? '<span class="champ-tag">Champion</span>' : ''}</td>` +
+      keys.map(k =>
+        `<td>
+          <div class="mbar-w">
+            <span style="width:40px;color:${m.ch ? '#f0f0f8' : '#8888aa'}">${m[k].toFixed(4)}</span>
+            <div class="mbar">
+              <div class="mbar-f" style="width:${(m[k]/mx[k]*100).toFixed(1)}%;background:${bc[k]}"></div>
+            </div>
+          </div>
+        </td>`
+      ).join('');
+    tb.appendChild(tr);
+  });
+
+  /*
+    Animate bars: reset width to '0', then restore after 50 ms so the
+    CSS transition (width 1s ease) plays from empty to full on page open.
+  */
+  setTimeout(() => {
+    document.querySelectorAll('.mbar-f').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0';
+      setTimeout(() => el.style.width = w, 50);
+    });
+  }, 100);
+
+  /* Colour palette for the four model series across charts */
+  const cols = [
+    'rgba(68,1,84,.85)',    
+    'rgba(59,82,139,.85)', 
+    'rgba(33,145,140,.85)', 
+    'rgba(240,180,41,1)',   
+  ];
+
+  /*  genROC helper  */
+  function genROC(auc) {
+   
+    return Array.from({ length:30 }, (_,i) => i/29)
+      .map(x => Math.min(1, x * (1 + (-Math.log((1-auc)/auc)/2) * (1-x))));
+  }
+
+  /* ROC Curves (line chart)  */
+  new Chart(document.getElementById('rocC'), {
+    type: 'line',
+    data: {
+      labels: Array.from({ length:30 }, (_,i) => (i/29).toFixed(2)),
+      datasets: [
+        // One series per model, plus a dashed random-classifier baseline
+        ...MODELS.map((m,i) => ({
+          label: `${m.n} (${m.u.toFixed(3)})`,
+          data: genROC(m.u),
+          borderColor: cols[i],
+          borderWidth: m.ch ? 2.5 : 1.5, // Champion line is thicker
+          pointRadius: 0,
+          tension: .4,
+          fill: false,
+        })),
+        {
+          label: 'Random',
+          data: Array.from({ length:30 }, (_,i) => i/29), // 45° diagonal
+          borderColor: 'rgba(255,255,255,.15)',
+          borderDash: [4,4],
+          pointRadius: 0,
+          fill: false,
+        },
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: { ...SC, y:{ ...SC.y, max:1.05 } },
+      plugins: { ...BASE_OPTS.plugins, legend:{ ...LEG, position:'bottom' } }
+    }
+  });
+
+  /* Radar Chart — SVM Tuned vs XGBoost Tuned */
+  const sv = MODELS[2]; // SVM Tuned
+  const xv = MODELS[3]; // XGBoost Tuned
+  new Chart(document.getElementById('radC'), {
+    type: 'radar',
+    data: {
+      labels: ['Accuracy','Precision','Recall','F1-Score','ROC-AUC'],
+      datasets: [
+        {
+          label: 'SVM (Tuned)',
+          data: [sv.a, sv.p, sv.r, sv.f, sv.u],
+          backgroundColor: 'rgba(0,217,192,.1)',
+          borderColor: '#00d9c0',
+          pointBackgroundColor: '#00d9c0',
+          borderWidth: 2,
+        },
+        {
+          label: 'XGBoost (Tuned)',
+          data: [xv.a, xv.p, xv.r, xv.f, xv.u],
+          backgroundColor: 'rgba(240,180,41,.1)',
+          borderColor: '#f0b429',
+          pointBackgroundColor: '#f0b429',
+          borderWidth: 2,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{ ...LEG, position:'bottom' }, tooltip:TT },
+      scales: {
+        r: {
+          min: .6, max: 1,
+          ticks: { color:'#8888aa', font:{ family:"'DM Mono',monospace", size:9 }, stepSize:.1 },
+          grid:  { color:'rgba(255,255,255,.06)' },
+          pointLabels: { color:'#8888aa', font:{ family:"'DM Mono',monospace", size:10 } },
+        }
+      }
+    }
+  });
+
+  /*  Grouped Bar Chart — all models, all metrics */
+  new Chart(document.getElementById('gbC'), {
+    type: 'bar',
+    data: {
+      labels: ['Accuracy','Precision','Recall','F1-Score','ROC-AUC'],
+      datasets: MODELS.map((m,i) => ({
+        label: m.n,
+        data: [m.a, m.p, m.r, m.f, m.u],
+        backgroundColor: cols[i],
+        borderRadius: 3,
+      }))
+    },
+    options: {
+      ...BASE_OPTS,
+      plugins: { ...BASE_OPTS.plugins, legend:{ ...LEG, position:'top' } }
+    }
+  });
+}
+
+let probCh = null;
+
+function predict() {
+  /* Read form values */
+  const age      = +document.getElementById('fa').value;
+  const inc      = +document.getElementById('fi').value;
+  const emp      = +document.getElementById('fe').value;
+  const ageM     = +document.getElementById('fam').value;  // Account age months
+  const risk     = +document.getElementById('frisk').value;
+  const edu      = document.getElementById('fed').value;
+  const ict      = document.getElementById('fic').value;
+  const children = +document.getElementById('fc').value;
+
+  /* Compute heuristic probability score */
+  let s = 0;
+  s += risk * 2.8;                                   // Avg monthly risk (dominant)
+  s += (ageM < 12)  ? .15 : 0;                       // Thin file penalty
+  s += (emp  < 1)   ? .18 : (emp < 3) ? .08 : -.05; // Employment tenure
+  s += (age  < 25)  ? .12 : (age > 55) ? .09 : -.02;// Age bracket
+  s += (inc  < 80000) ? .14 : (inc > 200000) ? -.08 : 0; // Income level
+  s += (edu === 'Lower secondary')  ? .16 : (edu === 'Higher education') ? -.06 : 0;
+  s += (ict === 'Pensioner')        ? .12 : (ict === 'State servant')    ? -.05 : 0;
+  s += (children > 2)  ? .06 : 0;
+
+  const prob = Math.min(.97, Math.max(.01, s)); // Clamp to [0.01, 0.97]
+  const pct  = Math.round(prob * 100);
+
+  //Update gauge 
+  document.getElementById('gv').textContent = pct + '%';
+  // Colour shifts: green < 30%, amber 30–60%, red > 60%
+  const gc = prob > .6 ? '#ff4d6d' : prob > .3 ? '#ffb347' : '#00e5a0';
+  const gf = document.getElementById('gf');
+  // Rotate from 45° (= 0%) to 225° (= 100%) by adding prob×180°
+  gf.style.borderLeftColor = gc;
+  gf.style.borderTopColor  = gc;
+  gf.style.transform = `rotate(${45 + prob * 180}deg)`;
+  document.getElementById('gv').style.color = gc;
+
+  /* ── Update verdict banner ── */
+  const vd = document.getElementById('verd');
+  if (prob > .6) {
+    vd.textContent   = '🔴 HIGH RISK — Recommend decline or senior review';
+    vd.style.background   = 'rgba(255,77,109,.1)';
+    vd.style.borderColor  = 'rgba(255,77,109,.3)';
+    vd.style.color        = '#ff4d6d';
+  } else if (prob > .3) {
+    vd.textContent   = '🟡 MEDIUM RISK — Approve with conditions';
+    vd.style.background   = 'rgba(255,179,71,.1)';
+    vd.style.borderColor  = 'rgba(255,179,71,.3)';
+    vd.style.color        = '#ffb347';
+  } else {
+    vd.textContent   = '🟢 LOW RISK — Recommend approval';
+    vd.style.background   = 'rgba(0,229,160,.1)';
+    vd.style.borderColor  = 'rgba(0,229,160,.3)';
+    vd.style.color        = '#00e5a0';
+  }
+
+
+  const factors = [
+    { n:'Avg Monthly Risk',  lv: risk>.15?'h':risk>.05?'m':'l',         lb: risk>.15?'High':'Medium / Low'          },
+    { n:'Employment Tenure', lv: emp<1?'h':emp<3?'m':'l',               lb: emp<1?'Short (<1yr)':emp<3?'Moderate':'Established' },
+    { n:'Age Group',         lv: (age<25||age>55)?'h':'l',              lb: (age<25||age>55)?'At-risk bracket':'Normal range'    },
+    { n:'Income Level',      lv: inc<80000?'h':inc>200000?'l':'m',      lb: inc<80000?'Constrained':inc>200000?'Strong':'Moderate' },
+    { n:'Account Age',       lv: ageM<12?'h':'l',                       lb: ageM<12?'Thin file':'Established'       },
+    { n:'Education',         lv: edu==='Lower secondary'?'h':edu==='Higher education'?'l':'m', lb: edu },
+  ];
+
+  document.getElementById('flist').innerHTML = factors.map(f =>
+    `<div class="fitem">
+       <span class="fnm">${f.n}</span>
+       <span class="fimp f${f.lv}">${f.lb}</span>
+     </div>`
+  ).join('');
+
+  
+  const pc = document.getElementById('probC').getContext('2d');
+  if (probCh) probCh.destroy();
+  probCh = new Chart(pc, {
+    type: 'doughnut',
+    data: {
+      labels: ['Default', 'Safe'],
+      datasets: [{
+        data: [pct, 100 - pct],
+        backgroundColor: [gc + 'bb', 'rgba(255,255,255,.05)'],
+        borderColor: [gc, 'rgba(255,255,255,.08)'],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout:'70%',
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#8888aa', font:{ family:"'DM Mono',monospace", size:10 }, boxWidth:10 } },
+        tooltip: TT,
+      }
+    }
+  });
+}
+
+let qTier = 'all';
+
+function renderQueue(data) {
+  const tb = document.getElementById('qbody');
+  tb.innerHTML = '';
+  // Sort highest probability first
+  [...data].sort((a,b) => b.prob - a.prob).forEach(r => {
+    const cls = { LOW:'rlo', MEDIUM:'rme', HIGH:'rhi' }[r.t];
+    const em  = { LOW:'🟢', MEDIUM:'🟡', HIGH:'🔴' }[r.t];
+    const tr  = document.createElement('tr');
+    tr.innerHTML =
+      `<td style="color:var(--txt);font-weight:500">${r.id}</td>` +
+      `<td>${r.age}</td>` +
+      `<td>$${(r.inc/1000).toFixed(0)}k</td>` +
+      `<td>${r.emp}yr</td>` +
+      `<td>${r.occ}</td>` +
+      `<td>${(r.risk*100).toFixed(1)}%</td>` +
+      `<td style="color:${r.prob>.6?'#ff4d6d':r.prob>.3?'#ffb347':'#00e5a0'};font-weight:600">${(r.prob*100).toFixed(1)}%</td>` +
+      `<td><span class="rbadge ${cls}">${em} ${r.t}</span></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function qfilter(t, btn) {
+  qTier = t;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = t === 'all' ? QUEUE : QUEUE.filter(r => r.t === t);
+  renderQueue(d);
+}
+
+function qsearch(v) {
+  const lv = v.toLowerCase();
+  const d  = QUEUE.filter(r =>
+    r.id.toLowerCase().includes(lv) || r.occ.toLowerCase().includes(lv)
+  );
+  renderQueue(qTier === 'all' ? d : d.filter(r => r.t === qTier));
+}
+
+let pInited = false;
+
+function initPipe() {
+  if (pInited) return;
+  pInited = true;
+
+  const c = document.getElementById('psteps');
+  PIPE.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'pstep ' + (s.ok ? 'done' : 'pend');
+    d.innerHTML =
+      `<div class="pico">${s.ok ? '✓' : '○'}</div>` +
+      `<div class="pbod">
+         <div class="pnm">§${i+1} · ${s.n}</div>
+         <div class="pdesc">${s.d}</div>
+       </div>` +
+      `<div class="pmeta">${s.t}</div>`;
+    c.appendChild(d);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initOverview(); // Build all Overview page charts
+  renderQueue(QUEUE); // Populate the application queue table
+  initPipe();         // Build the pipeline step cards
+});
+
+</script>
+</body>
+</html>
