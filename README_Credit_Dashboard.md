@@ -1,22 +1,22 @@
-# 💳 CreditIQ — Risk Intelligence Platform Dashboard
+# CreditIQ — Risk Intelligence Platform Dashboard
 
 An interactive single-page HTML dashboard that operationalises the Credit Risk Assessment project as a production risk management platform. It includes a live applicant risk scorer, model comparison tools, a pending application review queue, and a full ML pipeline execution log — all in one self-contained file.
 
 ---
 
-## 📁 File
+##  File
 
 `Credit_Risk_Project_Dashboard.html`
 
 ---
 
-## 🚀 How to Open
+##  How to Open
 
 No installation or server required. Simply open `Credit_Risk_Project_Dashboard.html` in any modern web browser (Chrome, Firefox, Edge, Safari).
 
 ---
 
-## 📊 Dashboard Overview
+##  Dashboard Overview
 
 ### Portfolio Summary (Top-Level KPIs)
 Displayed prominently at the top of the Overview panel:
@@ -35,9 +35,9 @@ Displayed prominently at the top of the Overview panel:
 
 ---
 
-## 🗂️ Navigation Panels
+##  Navigation Panels
 
-### ◈ Overview
+###  Overview
 A portfolio-level view of model performance and default risk across the full applicant base.
 
 **Charts included:**
@@ -50,7 +50,7 @@ A portfolio-level view of model performance and default risk across the full app
 
 ---
 
-### ⬡ Model Comparison
+###  Model Comparison
 Side-by-side evaluation of **XGBoost vs SVM**, comparing both baseline and tuned variants across all metrics.
 
 **Champion Model Summary:**
@@ -70,7 +70,7 @@ Side-by-side evaluation of **XGBoost vs SVM**, comparing both baseline and tuned
 
 ---
 
-### ◎ Risk Predictor
+###  Risk Predictor
 A **live applicant scoring interface** powered by the production XGBoost pipeline. Operators can enter applicant details and receive an instant default probability and risk tier classification.
 
 **Input Fields:**
@@ -119,7 +119,7 @@ A live review queue of **24 pending applications**, sorted by predicted default 
 
 ---
 
-### ⊹ Pipeline Status
+###  Pipeline Status
 An execution log and status summary for the full ML pipeline run.
 
 **Pipeline Metrics:**
@@ -136,7 +136,7 @@ An execution log and status summary for the full ML pipeline run.
 
 ---
 
-## 🛠️ Technical Details
+##  Technical Details
 
 | Property | Value |
 |----------|-------|

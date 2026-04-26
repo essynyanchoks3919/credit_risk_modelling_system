@@ -1,16 +1,16 @@
-# 🏦 Credit Risk Assessment & Default Prediction
+#  Credit Risk Assessment & Default Prediction
 
 A production-grade **credit risk scoring model** built on the Kaggle Credit Approval dataset (22,272 applicants, 25 features). The central challenge addressed is **data leakage** — a subtle but critical flaw in credit risk modelling where features are inadvertently computed using future information. This notebook rigorously audits for and eliminates leakage using an industry-standard observation/performance window methodology.
 
 ---
 
-## 📁 File
+##  File
 
 `Esther_Credit_Risk_Project.ipynb`
 
 ---
 
-## 📦 Dataset
+##  Dataset
 
 | File | Description |
 |------|-------------|
@@ -32,7 +32,7 @@ A production-grade **credit risk scoring model** built on the Kaggle Credit Appr
 
 ---
 
-## 🔄 Pipeline Walkthrough
+##  Pipeline Walkthrough
 
 ### Section 1 — Setup & Dependencies
 XGBoost, Plotly, Scikit-learn, and Seaborn are installed and configured. Global parameters are defined upfront:
@@ -50,7 +50,7 @@ A logging utility with elapsed-time tracking wraps every major pipeline stage.
 ### Section 2 — Data Acquisition
 Both CSVs are loaded with renamed columns for clarity (e.g. `CODE_GENDER` → `GENDER`, `DAYS_BIRTH` → `AGE_IN_DAYS`, `AMT_INCOME_TOTAL` → `ANNUAL_INCOME`). The credit record `MONTHS_BALANCE` is converted to a positive integer, and DPD status codes are mapped to numeric days-past-due values. A binary `IS_BAD_60` flag is derived: 1 if DPD ≥ 60, else 0.
 
-### Section 3 — Data Leakage Audit ⚠️
+### Section 3 — Data Leakage Audit 
 This is the **methodological centrepiece** of the notebook. The audit demonstrates that naively aggregating credit history over the full observation period produces a feature (`AVG_MONTHLY_RISK`) with near-perfect correlation to the target — not because it is informative, but because it is computed from the **same time window as the target variable itself**.
 
 The audit quantifies this leakage:
@@ -116,7 +116,7 @@ Both models produce ROC curves, Precision-Recall curves, calibration plots, and 
 
 ---
 
-## 📊 Key Results
+##  Key Results
 
 | Model | ROC-AUC | F1-Score | Notes |
 |-------|---------|----------|-------|
@@ -128,7 +128,7 @@ Both models produce ROC curves, Precision-Recall curves, calibration plots, and 
 
 ---
 
-## 🛠️ Technologies Used
+##  Technologies Used
 
 | Category | Tools |
 |----------|-------|
@@ -141,7 +141,7 @@ Both models produce ROC curves, Precision-Recall curves, calibration plots, and 
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 ```bash
@@ -156,10 +156,10 @@ pip install pandas numpy scikit-learn xgboost plotly seaborn matplotlib joblib
 
 ---
 
-## 📂 Data Source
+##  Data Source
 
 **Kaggle Credit Approval Dataset**
-Available on [Kaggle](https://www.kaggle.com/).
+Available on [Kaggle](https://www.kaggle.com/datasets/rikdifos/credit-card-approval-prediction).
 
 ---
 
